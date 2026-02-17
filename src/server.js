@@ -1,29 +1,26 @@
-import express from "express";
-import cors from "cors";
-import dotenv from "dotenv";
-import pinoHttp from "pino-http";
+import express from 'express';
+import cors from 'cors';
+import dotenv from 'dotenv';
+import pinoHttp from 'pino-http';
 
 dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Middlewares
 app.use(cors());
 app.use(express.json());
 app.use(pinoHttp());
 
-// ===== ROUTES =====
-
 // GET all notes
-app.get("/notes", (req, res) => {
+app.get('/notes', (req, res) => {
   res.status(200).json({
-    message: "Retrieved all notes",
+    message: 'Retrieved all notes',
   });
 });
 
 // GET note by id
-app.get("/notes/:noteId", (req, res) => {
+app.get('/notes/:noteId', (req, res) => {
   const { noteId } = req.params;
 
   res.status(200).json({
@@ -32,21 +29,21 @@ app.get("/notes/:noteId", (req, res) => {
 });
 
 // test error route
-app.get("/test-error", () => {
-  throw new Error("Simulated server error");
+app.get('/test-error', () => {
+  throw new Error('Simulated server error');
 });
 
 // ===== 404 handler =====
 app.use((req, res) => {
   res.status(404).json({
-    message: "Route not found",
+    message: 'Route not found',
   });
 });
 
 // ===== Error handler =====
 app.use((err, req, res, next) => {
   res.status(500).json({
-    message: err.message || "Server error",
+    message: err.message || 'Server error',
   });
 });
 
