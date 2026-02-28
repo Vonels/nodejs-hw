@@ -1,38 +1,28 @@
-import createHttpError from 'http-errors';
-import { Note } from '../models/note.js';
-
 export const getAllNotes = async (req, res) => {
-  const notes = await Note.find();
-  res.json(notes);
-};
+  const { page = 1, perPage = 10, tag, search } = req.query;
 
-export const getNoteById = async (req, res) => {
-  const note = await Note.findById(req.params.noteId);
+  const filter = {};
 
-  if (!note) throw createHttpError(404, 'Note not found');
+  if (tag) filter.tag = tag;
 
-  res.json(note);
-};
+  if (search) {
+    filter.$or = [
+      { title: { $regex: search, $options: 'i' } },
+      { content: { $regex: search, $options: 'i' } },
+    ];
+  }
 
-export const createNote = async (req, res) => {
-  const note = await Note.create(req.body);
-  res.status(201).json(note);
-};
+  const skip = (page - 1) * perPage;
 
-export const deleteNote = async (req, res) => {
-  const note = await Note.findByIdAndDelete(req.params.noteId);
+  const totalNotes = await Note.countDocuments(filter);
 
-  if (!note) throw createHttpError(404, 'Note not found');
+  const notes = await Note.find(filter).skip(skip).limit(perPage);
 
-  res.json(note);
-};
-
-export const updateNote = async (req, res) => {
-  const note = await Note.findByIdAndUpdate(req.params.noteId, req.body, {
-    new: true,
+  res.json({
+    page: Number(page),
+    perPage: Number(perPage),
+    totalNotes,
+    totalPages: Math.ceil(totalNotes / perPage),
+    notes,
   });
-
-  if (!note) throw createHttpError(404, 'Note not found');
-
-  res.json(note);
 };
