@@ -1,15 +1,17 @@
 import bcrypt from 'bcrypt';
 import createHttpError from 'http-errors';
+
 import { User } from '../models/user.js';
 import { Session } from '../models/session.js';
 import { createSession, setSessionCookies } from '../services/auth.js';
 
 export const registerUser = async (req, res) => {
   const { email, password } = req.body;
+  console.log(req.body);
 
-  const userExists = await User.findOne({ email });
+  const existingUser = await User.findOne({ email });
 
-  if (userExists) {
+  if (existingUser) {
     throw createHttpError(409, 'Email in use');
   }
 
