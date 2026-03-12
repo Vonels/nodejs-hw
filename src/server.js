@@ -4,6 +4,8 @@ import dotenv from 'dotenv';
 
 import { connectMongoDB } from './db/connectMongoDB.js';
 import notesRoutes from './routes/notesRoutes.js';
+import authRoutes from './routes/authRoutes.js';
+
 import cookieParser from 'cookie-parser';
 import { logger } from './middleware/logger.js';
 import { notFoundHandler } from './middleware/notFoundHandler.js';
@@ -22,6 +24,7 @@ app.use(cors());
 app.use(express.json());
 app.use(cookieParser());
 
+app.use('/auth', authRoutes);
 app.use('/notes', notesRoutes);
 
 app.use(notFoundHandler);
