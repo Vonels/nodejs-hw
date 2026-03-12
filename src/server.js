@@ -11,10 +11,10 @@ import { errorHandler } from './middleware/errorHandler.js';
 import { errors } from 'celebrate';
 
 dotenv.config();
-app.use(cookieParser());
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+app.use(cookieParser());
 
 await connectMongoDB();
 
