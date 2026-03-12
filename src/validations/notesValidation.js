@@ -1,4 +1,5 @@
 import Joi from 'joi';
+import mongoose from 'mongoose';
 import { TAGS } from '../constants/tags.js';
 
 export const getAllNotesSchema = Joi.object({
@@ -9,9 +10,15 @@ export const getAllNotesSchema = Joi.object({
 });
 
 export const noteIdSchema = Joi.object({
-  noteId: Joi.string().length(24).hex().required(),
+  noteId: Joi.string()
+    .custom((value, helpers) => {
+      if (!mongoose.Types.ObjectId.isValid(value)) {
+        return helpers.message('Invalid noteId');
+      }
+      return value;
+    })
+    .required(),
 });
-
 export const createNoteSchema = Joi.object({
   title: Joi.string().min(1).required(),
   content: Joi.string().allow(''),
