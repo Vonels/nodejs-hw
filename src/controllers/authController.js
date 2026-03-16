@@ -7,12 +7,11 @@ import { createSession, setSessionCookies } from '../services/auth.js';
 
 export const registerUser = async (req, res) => {
   const { email, password } = req.body;
-  console.log(req.body);
 
   const existingUser = await User.findOne({ email });
 
   if (existingUser) {
-    throw createHttpError(409, 'Email in use');
+    throw createHttpError(400, 'Email in use');
   }
 
   const hashedPassword = await bcrypt.hash(password, 10);
@@ -44,6 +43,9 @@ export const loginUser = async (req, res) => {
     throw createHttpError(401, 'Invalid credentials');
   }
 
+  // удаляем старые сессии
+  await Session.deleteMany({ userId: user._id });
+
   const session = await createSession(user._id);
 
   setSessionCookies(res, session);
@@ -51,7 +53,7 @@ export const loginUser = async (req, res) => {
   res.status(200).json(user);
 };
 
-export const refreshUsersSession = async (req, res) => {
+export const refreshUserSession = async (req, res) => {
   const { sessionId, refreshToken } = req.cookies;
 
   const session = await Session.findById(sessionId);
