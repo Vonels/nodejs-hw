@@ -17,6 +17,10 @@ const userSchema = new Schema(
       required: true,
       minlength: 8,
     },
+    avatar: {
+      type: String,
+      default: 'https://ac.goit.global/fullstack/react/default-avatar.jpg',
+    },
   },
   {
     timestamps: true,
@@ -24,11 +28,10 @@ const userSchema = new Schema(
   },
 );
 
-userSchema.pre('save', function (next) {
+userSchema.pre('save', function () {
   if (!this.username) {
     this.username = this.email;
   }
-  next();
 });
 
 userSchema.methods.toJSON = function () {
