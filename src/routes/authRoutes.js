@@ -1,26 +1,23 @@
 import { Router } from 'express';
 import { celebrate, Segments } from 'celebrate';
-import {
-  requestResetEmail,
-  resetPassword,
-} from '../controllers/authController.js';
 
 import {
   registerUser,
   loginUser,
   refreshUserSession,
   logoutUser,
+  requestResetEmail,
+  resetPassword,
 } from '../controllers/authController.js';
 
 import {
   registerUserSchema,
   loginUserSchema,
+  requestResetEmailSchema,
+  resetPasswordSchema,
 } from '../validations/authValidation.js';
 
 const router = Router();
-
-router.post('/request-reset-email', requestResetEmail);
-router.post('/reset-password', resetPassword);
 
 router.post(
   '/register',
@@ -38,7 +35,21 @@ router.post(
   loginUser,
 );
 
-router.post('/refresh', refreshUserSession);
-router.post('/logout', logoutUser);
+router.post(
+  '/request-reset-email',
+  celebrate({
+    [Segments.BODY]: requestResetEmailSchema,
+  }),
+  requestResetEmail,
+);
+
+// RESET PASSWORD
+router.post(
+  '/reset-password',
+  celebrate({
+    [Segments.BODY]: resetPasswordSchema,
+  }),
+  resetPassword,
+);
 
 export default router;

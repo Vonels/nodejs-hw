@@ -104,41 +104,35 @@ export const requestResetEmail = async (req, res) => {
 
   const user = await User.findOne({ email });
 
+  // ❗ НЕ палим существует пользователь или нет
   if (!user) {
-    throw createHttpError(404, 'User not found');
+    return res.status(200).json({
+      message: 'Password reset email sent successfully',
+    });
   }
 
   const token = jwt.sign({ sub: user._id, email }, process.env.JWT_SECRET, {
     expiresIn: '15m',
   });
 
-  const templatePath = path.join(
-    process.cwd(),
-    'src',
-    'templates',
-    'reset-password-email.html',
-  );
+  const templatePath = path.resolve('src/templates/reset-password-email.html');
 
-  let html = await fs.readFile(templatePath, 'utf-8');
+  const templateSource = await fs.readFile(templatePath, 'utf-8');
+
+  const template = handlebars.compile(templateSource);
 
   const resetLink = `${process.env.FRONTEND_DOMAIN}/reset-password?token=${token}`;
 
-  html = html
-    .replace('{{name}}', user.name || user.email)
-    .replace('{{link}}', resetLink);
+  const html = template({
+    name: user.email,
+    link: resetLink,
+  });
 
-  try {
-    await sendEmail({
-      to: email,
-      subject: 'Password reset',
-      html,
-    });
-  } catch (err) {
-    throw createHttpError(
-      500,
-      'Failed to send the email, please try again later.',
-    );
-  }
+  await sendEmail({
+    to: email,
+    subject: 'Password reset',
+    html,
+  });
 
   res.status(200).json({
     message: 'Password reset email sent successfully',
