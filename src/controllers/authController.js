@@ -1,6 +1,10 @@
+import jwt from 'jsonwebtoken';
+import fs from 'fs/promises';
+import path from 'path';
 import bcrypt from 'bcrypt';
 import createHttpError from 'http-errors';
 
+import { sendEmail } from '../utils/sendMail.js';
 import { User } from '../models/user.js';
 import { Session } from '../models/session.js';
 import { createSession, setSessionCookies } from '../services/auth.js';
@@ -22,10 +26,11 @@ export const registerUser = async (req, res) => {
   });
 
   const session = await createSession(user._id);
-
   setSessionCookies(res, session);
 
-  res.status(201).json(user);
+  const { password: _, ...userData } = user.toObject();
+
+  res.status(201).json(userData);
 };
 
 export const loginUser = async (req, res) => {
@@ -43,14 +48,14 @@ export const loginUser = async (req, res) => {
     throw createHttpError(401, 'Invalid credentials');
   }
 
-  // удаляем старые сессии
   await Session.deleteMany({ userId: user._id });
 
   const session = await createSession(user._id);
-
   setSessionCookies(res, session);
 
-  res.status(200).json(user);
+  const { password: _, ...userData } = user.toObject();
+
+  res.status(200).json(userData);
 };
 
 export const refreshUserSession = async (req, res) => {
@@ -73,7 +78,6 @@ export const refreshUserSession = async (req, res) => {
   await Session.findByIdAndDelete(sessionId);
 
   const newSession = await createSession(session.userId);
-
   setSessionCookies(res, newSession);
 
   res.status(200).json({
@@ -93,4 +97,82 @@ export const logoutUser = async (req, res) => {
   res.clearCookie('refreshToken');
 
   res.status(204).send();
+};
+
+export const requestResetEmail = async (req, res) => {
+  const { email } = req.body;
+
+  const user = await User.findOne({ email });
+
+  if (!user) {
+    throw createHttpError(404, 'User not found');
+  }
+
+  const token = jwt.sign({ sub: user._id, email }, process.env.JWT_SECRET, {
+    expiresIn: '15m',
+  });
+
+  const templatePath = path.join(
+    process.cwd(),
+    'src',
+    'templates',
+    'reset-password-email.html',
+  );
+
+  let html = await fs.readFile(templatePath, 'utf-8');
+
+  const resetLink = `${process.env.FRONTEND_DOMAIN}/reset-password?token=${token}`;
+
+  html = html
+    .replace('{{name}}', user.name || user.email)
+    .replace('{{link}}', resetLink);
+
+  try {
+    await sendEmail({
+      to: email,
+      subject: 'Password reset',
+      html,
+    });
+  } catch (err) {
+    throw createHttpError(
+      500,
+      'Failed to send the email, please try again later.',
+    );
+  }
+
+  res.status(200).json({
+    message: 'Password reset email sent successfully',
+  });
+};
+
+export const resetPassword = async (req, res) => {
+  const { token, password } = req.body;
+
+  let payload;
+
+  try {
+    payload = jwt.verify(token, process.env.JWT_SECRET);
+  } catch (err) {
+    throw createHttpError(401, 'Invalid or expired token');
+  }
+
+  const user = await User.findOne({
+    _id: payload.sub,
+    email: payload.email,
+  });
+
+  if (!user) {
+    throw createHttpError(404, 'User not found');
+  }
+
+  const hashedPassword = await bcrypt.hash(password, 10);
+
+  user.password = hashedPassword;
+  await user.save();
+
+  await Session.deleteMany({ userId: user._id });
+
+  res.status(200).json({
+    message: 'Password reset successfully',
+  });
 };

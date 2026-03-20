@@ -1,5 +1,9 @@
 import { Router } from 'express';
 import { celebrate, Segments } from 'celebrate';
+import {
+  requestResetEmail,
+  resetPassword,
+} from '../controllers/authController.js';
 
 import {
   registerUser,
@@ -14,6 +18,9 @@ import {
 } from '../validations/authValidation.js';
 
 const router = Router();
+
+router.post('/request-reset-email', requestResetEmail);
+router.post('/reset-password', resetPassword);
 
 router.post(
   '/register',
