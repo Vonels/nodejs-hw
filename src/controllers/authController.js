@@ -3,6 +3,7 @@ import fs from 'fs/promises';
 import path from 'path';
 import bcrypt from 'bcrypt';
 import createHttpError from 'http-errors';
+import handlebars from 'handlebars';
 
 import { sendEmail } from '../utils/sendMail.js';
 import { User } from '../models/user.js';
@@ -104,7 +105,6 @@ export const requestResetEmail = async (req, res) => {
 
   const user = await User.findOne({ email });
 
-  // ❗ НЕ палим существует пользователь или нет
   if (!user) {
     return res.status(200).json({
       message: 'Password reset email sent successfully',
@@ -116,7 +116,6 @@ export const requestResetEmail = async (req, res) => {
   });
 
   const templatePath = path.resolve('src/templates/reset-password-email.html');
-
   const templateSource = await fs.readFile(templatePath, 'utf-8');
 
   const template = handlebars.compile(templateSource);
@@ -124,15 +123,22 @@ export const requestResetEmail = async (req, res) => {
   const resetLink = `${process.env.FRONTEND_DOMAIN}/reset-password?token=${token}`;
 
   const html = template({
-    name: user.email,
+    name: user.username,
     link: resetLink,
   });
 
-  await sendEmail({
-    to: email,
-    subject: 'Password reset',
-    html,
-  });
+  try {
+    await sendEmail({
+      to: email,
+      subject: 'Password reset',
+      html,
+    });
+  } catch (err) {
+    throw createHttpError(
+      500,
+      'Failed to send the email, please try again later.',
+    );
+  }
 
   res.status(200).json({
     message: 'Password reset email sent successfully',
