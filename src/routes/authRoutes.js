@@ -52,4 +52,7 @@ router.post(
   resetPassword,
 );
 
+router.post('/refresh', refreshUserSession);
+router.post('/logout', logoutUser);
+
 export default router;
